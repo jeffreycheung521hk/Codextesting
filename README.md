@@ -1,43 +1,46 @@
 # Anti-Quantum Bitcoin (Toy)
 
-This repository contains a **toy** "anti-quantum" signing flow for Bitcoin-style
-transactions. It is designed for educational exploration only and **must not**
-be used for real funds or security-critical systems.
+This repository contains a **toy** hash-based signing flow for Bitcoin-style
+transactions. It uses a Lamport one-time signature (OTS) scheme and a simple
+Merkle tree for batching multiple OTS keys under a single address. This is
+intended for education and experimentation only.
+
+> ⚠️ **Do not use this code in production.**
 
 ## What this provides
 
-- Hash-based key derivation with SHA3-512
-- Address derivation with SHAKE-256
-- HMAC-based signing for fixed-size signatures
+- Lamport OTS key generation and signing
+- Merkle tree aggregation for multiple signatures
 - Minimal transaction payload creation and verification
 
 ## Usage
 
 ```python
 from anti_quantum_bitcoin import (
-    generate_keypair,
-    derive_address,
+    MerkleKeychain,
+    generate_master_seed,
     sign_transaction,
     verify_transaction,
 )
 
-keypair = generate_keypair()
-address = derive_address(keypair.public_key)
+seed = generate_master_seed()
+keychain = MerkleKeychain(seed=seed, height=4)
+address = keychain.address()
 
-payload, signature = sign_transaction(
-    keypair,
+payload, signature, public_key = sign_transaction(
+    keychain,
+    index=0,
     sender=address,
     recipient="AQB-0000000000000000000000000000000000000000",
     amount_sats=1000,
 )
 
-assert verify_transaction(keypair.public_key, payload, signature)
+assert verify_transaction(public_key, payload, signature)
 ```
 
 ## Notes
 
-- The verifier intentionally cuts corners to keep the example small. Real
-  post-quantum signature systems do **not** allow reconstructing the private
-  key from the public key.
-- If you need a real post-quantum scheme, consider standardized algorithms like
-  CRYSTALS-Dilithium or SPHINCS+ and use vetted libraries.
+- Lamport signatures are **one-time**: each OTS key must only sign a single
+  message. The Merkle keychain helps manage many OTS keys.
+- For real post-quantum deployments, use standardized algorithms (e.g.
+  CRYSTALS-Dilithium or SPHINCS+) with vetted libraries.
